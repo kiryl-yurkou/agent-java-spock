@@ -30,11 +30,15 @@ import static com.google.common.collect.Iterables.getFirst;
 import static org.spockframework.runtime.model.MethodKind.*;
 
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.inject.Inject;
 
+import com.athaydes.spockframework.report.internal.SpecData;
+import com.athaydes.spockframework.report.vivid.BlockCode;
+import com.athaydes.spockframework.report.vivid.SpecSourceCodeReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spockframework.runtime.model.*;
@@ -161,6 +165,15 @@ class SpockReporter implements ISpockReporter {
 	}
 
 	@Override
+	public void registerBlock(IterationInfo iteration, BlockInfo block) {
+		if (rpIsDown.get()) {
+			return;
+		}
+
+		reportBlockStart(iteration, block);
+	}
+
+    @Override
 	public void trackSkippedFeature(FeatureInfo featureInfo) {
 		if (rpIsDown.get()) {
 			return;
@@ -221,6 +234,16 @@ class SpockReporter implements ISpockReporter {
 	}
 
 	@Override
+	public void publishBlockResult(IterationInfo iteration, BlockInfo block) {
+		if (rpIsDown.get()) {
+			return;
+		}
+
+		NodeFootprint<BlockInfo> blockFootprint = launchContext.findBlockFootprint(iteration, block);
+		reportTestItemFinish(blockFootprint);
+	}
+
+	@Override
 	public void publishFeatureResult(FeatureInfo feature) {
 		if (rpIsDown.get()) {
 			return;
@@ -251,8 +274,9 @@ class SpockReporter implements ISpockReporter {
 
 		if (FEATURE.equals(errorSourceKind)) {
 			IterationInfo iterationInfo = launchContext.getRuntimePointerForSpec(sourceSpec).getCurrentIteration();
-			errorSourceFootprint = launchContext.findIterationFootprint(iterationInfo);
-
+			BlockInfo blockInfo = parseError(error);
+			errorSourceFootprint = launchContext.findBlockFootprint(iterationInfo, blockInfo);
+			//errorSourceFootprint = launchContext.findIterationFootprint(iterationInfo);
 		} else if (SHARED_INITIALIZER.equals(errorSourceKind)) {
 			/*
 			 * Explicitly register specification here, because in the case of
@@ -286,6 +310,35 @@ class SpockReporter implements ISpockReporter {
 		}
 	}
 
+	private BlockInfo parseError(ErrorInfo error) {
+		MethodInfo errorSource = error.getMethod();
+		SpecInfo sourceSpec = errorSource.getParent();
+
+		SpecData specData = new SpecData();
+		specData.setInfo(sourceSpec);
+
+		SpecSourceCodeReader sourceCodeReader = new SpecSourceCodeReader();
+		sourceCodeReader.read(specData);
+
+		List<BlockCode> blocks = sourceCodeReader.getBlocks(error.getMethod().getFeature());
+
+		for (int i = 0; i < blocks.size(); i++) {
+			BlockCode blockCode = blocks.get(i);
+			Integer firstLine = blockCode.getLineNumbers().get(0);
+			Integer lastLine = blockCode.getLineNumbers().get(blocks.get(i).getLineNumbers().size() - 1);
+
+			Integer exceptionLine = error.getException().getStackTrace()[0].getLineNumber();
+
+			if (exceptionLine >= firstLine && exceptionLine <= lastLine) {
+				List<BlockInfo> blockInfos = error.getMethod().getFeature().getBlocks();
+				BlockInfo rootCause = blockInfos.get(i);
+				return rootCause;
+			}
+		}
+
+		return null;
+	}
+
 	@Override
 	public void finishLaunch() {
 		if (launchContext.tryFinishLaunch()) {
@@ -312,6 +365,19 @@ class SpockReporter implements ISpockReporter {
 			EntryCreatedRS rs = reportPortalService.startTestItem(specFootprint.getId(), rq);
 			launchContext.addRunningIteration(rs.getId(), iteration);
 			DisorderedListenerContextDelegate.setRunningNowItemId(rs.getId());
+		} catch (RestEndpointIOException ex) {
+			handleRpException(ex, "Unable start test method: '" + iteration.getName() + "'");
+		}
+	}
+
+	@VisibleForTesting
+	void reportBlockStart(IterationInfo iteration, BlockInfo block) {
+		StartTestItemRQ rq = createBaseStartTestItemRQ(block.getKind().name(), "STEP");
+		rq.setDescription(buildBlockDescription(block));
+		NodeFootprint<IterationInfo> iterationFootprint = launchContext.findIterationFootprint(iteration);
+		try {
+			EntryCreatedRS rs = reportPortalService.startTestItem(iterationFootprint.getId(), rq);
+			launchContext.addRunningBlock(rs.getId(), iteration, block);
 		} catch (RestEndpointIOException ex) {
 			handleRpException(ex, "Unable start test method: '" + iteration.getName() + "'");
 		}

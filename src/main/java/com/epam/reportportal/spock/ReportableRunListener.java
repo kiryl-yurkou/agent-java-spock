@@ -64,10 +64,16 @@ class ReportableRunListener extends AbstractRunListener {
 	@Override
 	public void beforeIteration(IterationInfo iteration) {
 		spockReporter.registerIteration(iteration);
+		for (BlockInfo block : iteration.getFeature().getBlocks()) {
+			spockReporter.registerBlock(iteration, block);
+		}
 	}
 
 	@Override
 	public void afterIteration(IterationInfo iteration) {
+		for (BlockInfo block : iteration.getFeature().getBlocks()) {
+			spockReporter.publishBlockResult(iteration, block);
+		}
 		spockReporter.publishIterationResult(iteration);
 	}
 

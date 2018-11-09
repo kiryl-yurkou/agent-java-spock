@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
+import org.spockframework.runtime.model.BlockInfo;
 import org.spockframework.runtime.model.FeatureInfo;
 import org.spockframework.runtime.model.IterationInfo;
 import org.spockframework.runtime.model.SpecInfo;
@@ -77,7 +78,11 @@ abstract class AbstractLaunchContext {
 
 	abstract void addRunningIteration(String id, IterationInfo iterationInfo);
 
+	abstract void addRunningBlock(String id, IterationInfo iterationInfo, BlockInfo blockInfo);
+
 	abstract NodeFootprint<IterationInfo> findIterationFootprint(IterationInfo iterationInfo);
+
+	abstract NodeFootprint<BlockInfo> findBlockFootprint(IterationInfo iterationInfo, BlockInfo blockInfo);
 
 	abstract Iterable<? extends NodeFootprint<IterationInfo>> findIterationFootprints(FeatureInfo featureInfo);
 

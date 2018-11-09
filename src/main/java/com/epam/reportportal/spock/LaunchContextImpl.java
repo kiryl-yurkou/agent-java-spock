@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.spockframework.runtime.model.BlockInfo;
 import org.spockframework.runtime.model.FeatureInfo;
 import org.spockframework.runtime.model.IterationInfo;
 import org.spockframework.runtime.model.SpecInfo;
@@ -78,6 +79,12 @@ class LaunchContextImpl extends AbstractLaunchContext {
 	}
 
 	@Override
+	void addRunningBlock(String id, IterationInfo iterationInfo, BlockInfo blockInfo) {
+		Iteration iterationFootprint = (Iteration) findIterationFootprint(iterationInfo);
+		iterationFootprint.addRunningBlock(blockInfo, id);
+	}
+
+	@Override
 	public NodeFootprint<IterationInfo> findIterationFootprint(IterationInfo iterationInfo) {
 		Specification specFootprint = findSpecFootprint(iterationInfo.getFeature().getSpec());
 		if (specFootprint != null) {
@@ -88,6 +95,22 @@ class LaunchContextImpl extends AbstractLaunchContext {
 		}
 		return null;
 	}
+
+	@Override
+	NodeFootprint<BlockInfo> findBlockFootprint(IterationInfo iterationInfo, BlockInfo blockInfo) {
+		Specification specFootprint = findSpecFootprint(iterationInfo.getFeature().getSpec());
+		if (specFootprint != null) {
+			Feature feature = specFootprint.getFeature(iterationInfo.getFeature());
+			if (feature != null) {
+				Iteration iteration = feature.getIteration(iterationInfo);
+				if (iteration != null) {
+					return iteration.getBlock(blockInfo);
+				}
+			}
+		}
+		return null;
+	}
+
 
 	@Override
 	public Iterable<Iteration> findIterationFootprints(FeatureInfo featureInfo) {
@@ -128,7 +151,7 @@ class LaunchContextImpl extends AbstractLaunchContext {
 		private List<Feature> features;
 
 		Specification(SpecInfo nodeInfo, String id) {
-			super(nodeInfo, id);
+			super(nodeInfo, id, nodeInfo.getName());
 		}
 
 		@Override
@@ -190,8 +213,42 @@ class LaunchContextImpl extends AbstractLaunchContext {
 
 	private static class Iteration extends NodeFootprint<IterationInfo> {
 
+		private List<Block> blocks;
+
 		Iteration(IterationInfo nodeInfo, String id) {
-			super(nodeInfo, id);
+			super(nodeInfo, id, nodeInfo.getName());
+		}
+
+		@Override
+		boolean hasDescendants() {
+			return true;
+		}
+
+		private void addRunningBlock(BlockInfo blockInfo, String id) {
+			getAllTrackedBlocks().add(new Block(blockInfo, id));
+		}
+
+		private Block getBlock(final BlockInfo blockInfo) {
+			return Iterables.find(getAllTrackedBlocks(), new Predicate<Block>() {
+				@Override
+				public boolean apply(Block input) {
+					return input != null && blockInfo.equals(input.getItem());
+				}
+			});
+		}
+
+		private List<Block> getAllTrackedBlocks() {
+			if (blocks == null) {
+				blocks = Lists.newArrayList();
+			}
+			return blocks;
+		}
+	}
+
+	private static class Block extends NodeFootprint<BlockInfo> {
+
+		Block(BlockInfo nodeInfo, String id) {
+			super(nodeInfo, id, nodeInfo.getKind().name());
 		}
 
 		@Override

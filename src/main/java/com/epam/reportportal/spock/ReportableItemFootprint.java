@@ -34,7 +34,7 @@ import com.google.common.base.Predicate;
  *
  * @author Dzmitry Mikhievich
  */
-abstract class ReportableItemFootprint<T extends NodeInfo> {
+abstract class ReportableItemFootprint<T> {
 
 	static final Predicate<ReportableItemFootprint> IS_NOT_PUBLISHED = new Predicate<ReportableItemFootprint>() {
 		@Override
@@ -44,16 +44,18 @@ abstract class ReportableItemFootprint<T extends NodeInfo> {
 	};
 
 	private final String id;
+	private final String name;
 	private final T item;
 
 	private String status;
 	private boolean published = false;
 
-	ReportableItemFootprint(T item, String id) {
+	ReportableItemFootprint(T item, String id, String name) {
 		checkArgument(item != null, "Node info shouldn't be null");
 		checkArgument(id != null, "Test item id shouldn't be null");
 
 		this.id = id;
+		this.name = name;
 		this.item = item;
 	}
 
@@ -82,7 +84,7 @@ abstract class ReportableItemFootprint<T extends NodeInfo> {
 	}
 
 	String getItemName() {
-		return getItem().getName();
+		return name;
 	}
 
 	abstract boolean hasDescendants();

@@ -40,7 +40,7 @@ import com.google.common.base.Predicate;
  *
  * @author Dzmitry Mikhievich
  */
-abstract class NodeFootprint<T extends NodeInfo> extends ReportableItemFootprint<T> {
+abstract class NodeFootprint<T> extends ReportableItemFootprint<T> {
 
 	/*
 	 * Approximate fixtures count, which should match the most of cases. This is
@@ -51,8 +51,8 @@ abstract class NodeFootprint<T extends NodeInfo> extends ReportableItemFootprint
 
 	private final List<ReportableItemFootprint<MethodInfo>> fixtures;
 
-	NodeFootprint(T nodeInfo, String id) {
-		super(nodeInfo, id);
+	NodeFootprint(T nodeInfo, String id, String name) {
+		super(nodeInfo, id, name);
 		fixtures = newArrayListWithCapacity(APPROXIMATE_CAPACITY);
 	}
 

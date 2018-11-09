@@ -30,7 +30,7 @@ import org.spockframework.runtime.model.MethodInfo;
 class FixtureFootprint extends ReportableItemFootprint<MethodInfo> {
 
 	FixtureFootprint(MethodInfo item, String id) {
-		super(item, id);
+		super(item, id, item.getName());
 	}
 
 	@Override

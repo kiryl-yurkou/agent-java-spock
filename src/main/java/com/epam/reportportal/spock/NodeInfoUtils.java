@@ -108,6 +108,16 @@ final class NodeInfoUtils {
 		return unrollIterationDescription(iterationInfo, featureDescription);
 	}
 
+	static String buildBlockDescription(BlockInfo block) {
+		StringBuilder blockDescription = new StringBuilder();
+
+		for (String s : block.getTexts()) {
+			blockDescription = blockDescription.append(s).append(LINE_SEPARATOR);
+		}
+
+		return blockDescription.toString();
+	}
+
 	/**
 	 * Get display name of the fixture. If fixture is inherited, display name is started from the source specification name.
 	 *

@@ -42,6 +42,8 @@ interface ISpockReporter {
 
 	void registerIteration(IterationInfo iteration);
 
+	void registerBlock(IterationInfo iteration, BlockInfo block);
+
 	/**
 	 * Handle feature skipping
 	 *
@@ -59,6 +61,8 @@ interface ISpockReporter {
 	void publishFixtureResult(MethodInfo fixture);
 
 	void publishIterationResult(IterationInfo iteration);
+
+	void publishBlockResult(IterationInfo iteration, BlockInfo block);
 
 	void publishFeatureResult(FeatureInfo feature);
 
